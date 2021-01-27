@@ -15,7 +15,7 @@
 // do some debugging of the pokey code I was using.
 //
 
-`define no_colormap
+//`define no_colormap
 `define async_lr
 //`define force_pf
 
@@ -209,7 +209,8 @@ module centipede(
    wire [7:0]  playerin_out;
 
    wire [7:0]  pokey_out;
-   
+   wire [3:0] pokey_ch0, pokey_ch1, pokey_ch2, pokey_ch3; 
+ 
    // ------------------------------------------------------------------------
 
    // Synchronizer
@@ -358,8 +359,8 @@ module centipede(
 	136001-213.p4	256	12288		0011 0000 00000000 prom_cs
 	*/
 	wire prog_rom_1_cs = (dn_addr[13] == 1'b0);
-	wire prog_pf_rom_1_cs = (dn_addr[13:11]==3'b100);
-   wire prog_pf_rom_0_cs = (dn_addr[13:11]==3'b101);
+	wire prog_pf_rom_0_cs = (dn_addr[13:11]==3'b100);
+   wire prog_pf_rom_1_cs = (dn_addr[13:11]==3'b101);
    wire prom_cs = (dn_addr[13:8]==6'b110000);
 
 	dpram #(13) rom
@@ -491,13 +492,15 @@ module centipede(
    //
    //   0010 xxxx xxxx xxxx  2000 rom_n
    //   0000 1100 0000 0000  0c00 
-   
+
+/*   
    assign {rom3_n, rom2_n, rom1_n, rom0_n} =
 					    ({rom_n, ab[12:11]} == 3'b000) ? 4'b1110 :
 					    ({rom_n, ab[12:11]} == 3'b001) ? 4'b1101 :
 					    ({rom_n, ab[12:11]} == 3'b010) ? 4'b1011 :
 					    ({rom_n, ab[12:11]} == 3'b011) ? 4'b0111 :
 					    4'b1111;
+*/
 
    assign adecode =
 		   (ab[13:10] == 4'b0000) ? 10'b1111111110 :
@@ -558,8 +561,8 @@ module centipede(
 						4'b1111;
 
    //
-//   assign mob_n = ~(s_256h_n & s_256hd) & ~(s_256h2d_n & s_256hd);
-   assign mob_n = ~(s_256h_n | s_256h2d_n);
+   assign mob_n = ~(s_256h_n & s_256hd) & ~(s_256h2d_n & s_256hd);
+//   assign mob_n = ~(s_256h_n | s_256h2d_n);
 
    assign blank_clk = ~s_12mhz & (h_counter[3:0] == 4'b1111);
 
@@ -748,9 +751,9 @@ module centipede(
      if (reset)
        gry <= 0;
      else
-//       if (~mob_n)
-//	 gry <= 2'b00;
-//       else
+       if (~mob_n)
+	 gry <= 2'b00;
+       else
 	 gry <= mr;
 
    
@@ -873,7 +876,7 @@ module centipede(
    assign db_in =
 		 ~rom_n ? rom_out :
 		 ~ram0_n ? ram_out :
-		 ~coloram_n ? { 4'b0, coloram_out } :
+//		 ~coloram_n ? { 4'b0, coloram_out } :
                  ~pframrd_n ? pf_out[7:0] :
 		 ~ea_read_n ? hs_out :
 		 ~in0_n ? playerin_out :
@@ -1153,6 +1156,8 @@ module centipede(
 			    assign audio_o = { 2'b0, audio };
 
 */
+
+/*
    wire [3:0] audio_pokey_new;
    POKEY POKEY(
    .Din(db_out[7:0]),
@@ -1166,6 +1171,24 @@ module centipede(
    .clk(clk_100mhz)
    );
 	assign audio_o = {audio_pokey_new,4'b0000} ;
+*/
+
+	pokey pokey(
+		.clk(phi2),
+		.enable_179(1),
+		.addr(ab[3:0]),
+		.data_in(db_out[7:0]),
+		.wr_en(~rw_n & ~pokey_n),
+		.reset_n(mpu_reset_n),
+		.data_out(pokey_out),
+		.channel_0_out(pokey_ch0),
+		.channel_1_out(pokey_ch1),
+		.channel_2_out(pokey_ch2),
+		.channel_3_out(pokey_ch3)
+	);
+
+	assign audio = (pokey_ch0+pokey_ch1)+(pokey_ch2+pokey_ch3);
+	assign audio_o = {audio, 2'b0};
 
    //
    reg [7:0]  last_pokey_rd;
@@ -1184,11 +1207,16 @@ module centipede(
    
    assign comp_sync = hsync_n & vsync_n;
 
+   wire blank_disp_n;
+   assign blank_disp_n = hblank_n & vblankd_n;
+
    // XXX implement alternate shades of blue and green...
    always @(posedge s_6mhz_n)
      if (reset)
-       rgbi <= 0;
-     else
+       rgbi <= 4'b1111;		// output is inverted
+	  else if (~blank_disp_n)
+	    rgbi <= 4'b1111;
+      else
        rgbi <= coloram_rgbi;
 
    assign coloram_w_n = write_n | coloram_n;
@@ -1252,14 +1280,14 @@ module centipede(
 		 0;
 `else
    assign rgb_o =
-                  rgbi == 4'b0000 ? 9'b111_111_111 :
-                  rgbi == 4'b0001 ? 9'b111_111_011 :
-                  rgbi == 4'b0010 ? 9'b111_011_111 :
-                  rgbi == 4'b0011 ? 9'b111_011_011 :
-                  rgbi == 4'b0100 ? 9'b011_111_111 :
-                  rgbi == 4'b0101 ? 9'b011_111_011 :
-                  rgbi == 4'b0110 ? 9'b011_011_111 :
-                  rgbi == 4'b0111 ? 9'b011_011_011 :
+                  rgbi == 4'b0000 ? 9'b100_111_111 :
+                  rgbi == 4'b0001 ? 9'b100_111_000 :
+                  rgbi == 4'b0010 ? 9'b100_000_111 :
+                  rgbi == 4'b0011 ? 9'b100_000_000 :
+                  rgbi == 4'b0100 ? 9'b000_100_111 :
+                  rgbi == 4'b0101 ? 9'b000_100_000 :
+                  rgbi == 4'b0110 ? 9'b000_000_111 :
+                  rgbi == 4'b0111 ? 9'b000_000_000 :
                   rgbi == 4'b1000 ? 9'b111_111_111 :
                   rgbi == 4'b1001 ? 9'b111_111_000 :
                   rgbi == 4'b1010 ? 9'b111_000_111 :
