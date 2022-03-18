@@ -214,6 +214,8 @@ localparam CONF_STR = {
 	"OUV,UserIO Joystick,Off,DB9MD,DB15 ;",
 	"OT,UserIO Players, 1 Player,2 Players;",
 "-;",
+	"OD,Test,Off,On;",
+	"-;",
 	"DIP;",
 	"-;",
 	"OR,Autosave Hiscores,Off,On;",
@@ -223,7 +225,7 @@ localparam CONF_STR = {
 "-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P,Coin,Pause;",
-	"Jn,A,Start,Select,Right,L;",
+	"Jn,A,Start,Select,R,L;",
 	"V,v",`BUILD_DATE
 };
 
