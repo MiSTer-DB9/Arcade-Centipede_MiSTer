@@ -168,12 +168,31 @@ module emu
 	// 1 - D-/TX
 	// 2..6 - USR2..USR6
 	// Set USER_OUT to 1 to read from USER_IN.
-	output	USER_OSD,
-	output  [1:0] USER_MODE,
-	input	[7:0] USER_IN,
-	output	[7:0] USER_OUT,
+	output			USER_OSD,
+	output		[1:0] USER_MODE,
+	input		[7:0] USER_IN,
+	output		[7:0] USER_OUT,
+
 	input         OSD_STATUS
 );
+
+wire [15:0] joydb_1,joydb_2;
+wire        joydb_1ena,joydb_2ena;
+joydbmix joydbmix
+(
+  .CLK_JOY(CLK_50M),
+  .JOY_FLAG(status[63:61]),
+  .USER_IN(USER_IN),
+  .USER_OUT(USER_OUT),
+  .USER_MODE(USER_MODE),
+  .USER_OSD(USER_OSD),
+  .joydb_1ena(joydb_1ena),
+  .joydb_2ena(joydb_2ena),
+  .joydb_1(joydb_1),
+  .joydb_2(joydb_2)
+);
+wire [15:0]   joystick_0 = joydb_1ena ? {joydb_1[9],joydb_1[11]|(joydb_1[10]&joydb_1[5]),joydb_1[10],joydb_1[5:0]} : joystick_0_USB;
+wire [15:0]   joystick_1 = joydb_2ena ? {joydb_2[10],joydb_2[11]|(joydb_2[10]&joydb_2[5]),joydb_2[9],joydb_2[5:0]} : joydb_1ena ? joystick_0_USB : joystick_1_USB;
 
 ///////// Default values for ports not used in this core /////////
 
@@ -182,15 +201,6 @@ assign ADC_BUS  = 'Z;
 assign {UART_RTS, UART_TXD, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
-wire         CLK_JOY = CLK_50M;         //Assign clock between 40-50Mhz
-wire   [2:0] JOY_FLAG  = {status[30],status[31],status[29]}; //Assign 3 bits of status (31:29) o (63:61)
-wire         JOY_CLK, JOY_LOAD, JOY_SPLIT, JOY_MDSEL;
-wire   [5:0] JOY_MDIN  = JOY_FLAG[2] ? {USER_IN[6],USER_IN[3],USER_IN[5],USER_IN[7],USER_IN[1],USER_IN[2]} : '1;
-wire         JOY_DATA  = JOY_FLAG[1] ? USER_IN[5] : '1;
-assign       USER_OUT  = JOY_FLAG[2] ? {3'b111,JOY_SPLIT,3'b111,JOY_MDSEL} : JOY_FLAG[1] ? {6'b111111,JOY_CLK,JOY_LOAD} : '1;
-assign       USER_MODE = JOY_FLAG[2:1] ;
-assign       USER_OSD  = joydb_1[10] & joydb_1[6];
-
 assign FB_FORCE_BLANK = '0;
 
 assign VGA_F1 = '0;
@@ -220,9 +230,10 @@ localparam CONF_STR = {
 	"OEF,Mouse/trackball speed,100%,200%,25%,50%;",
 	"OB,Vertical flip,Off,On;",
 	"OC,Cabinet,Cocktail,Upright;",
-	"OUV,UserIO Joystick,Off,DB9MD,DB15 ;",
-	"OT,UserIO Players, 1 Player,2 Players;",	
-"-;",
+	"-;",
+	"oUV,UserIO Joystick,Off,DB15,DB9MD;",
+	"oT,UserIO Players, 1 Player,2 Players;",	
+	"-;",
 	"OD,Test,Off,On;",
 	"-;",
 	"DIP;",
@@ -231,7 +242,7 @@ localparam CONF_STR = {
 	"P1,Pause options;",
 	"P1OP,Pause when OSD is open,On,Off;",
 	"P1OQ,Dim video after 10s,On,Off;",
-"-;",
+	"-;",
 	"R0,Reset;",
 	"J1,Fire,Start 1P,Start 2P,Coin,Pause;",
 	"Jn,A,Start,Select,R,L;",
@@ -256,7 +267,7 @@ pll pll
 
 ///////////////////////////////////////////////////
 
-wire [31:0] status;
+wire [63:0] status;
 wire  [1:0] buttons;
 wire        forced_scandoubler;
 wire        video_rotated;
@@ -277,41 +288,6 @@ wire [15:0] joy = joystick_0 | joystick_1;
 wire [24:0] ps2_mouse;
 
 wire [21:0] gamma_bus;
-
-// CO S2 S1 F1 U D L R 
-wire [31:0] joystick_0 = joydb_1ena ? {joydb_1[11]|(joydb_1[10]&joydb_1[5]),joydb_1[9],joydb_1[10],joydb_1[4:0]} : joystick_0_USB;
-wire [31:0] joystick_1 = joydb_2ena ? {joydb_2[11]|(joydb_2[10]&joydb_2[5]),joydb_2[10],joydb_2[9],joydb_2[4:0]} : joydb_1ena ? joystick_0_USB : joystick_1_USB;
-
-wire [15:0] joydb_1 = JOY_FLAG[2] ? JOYDB9MD_1 : JOY_FLAG[1] ? JOYDB15_1 : '0;
-wire [15:0] joydb_2 = JOY_FLAG[2] ? JOYDB9MD_2 : JOY_FLAG[1] ? JOYDB15_2 : '0;
-wire        joydb_1ena = |JOY_FLAG[2:1]              ;
-wire        joydb_2ena = |JOY_FLAG[2:1] & JOY_FLAG[0];
-
-//----BA 9876543210
-//----MS ZYXCBAUDLR
-reg [15:0] JOYDB9MD_1,JOYDB9MD_2;
-joy_db9md joy_db9md
-(
-  .clk       ( CLK_JOY    ), //40-50MHz
-  .joy_split ( JOY_SPLIT  ),
-  .joy_mdsel ( JOY_MDSEL  ),
-  .joy_in    ( JOY_MDIN   ),
-  .joystick1 ( JOYDB9MD_1 ),
-  .joystick2 ( JOYDB9MD_2 )	  
-);
-
-//----BA 9876543210
-//----LS FEDCBAUDLR
-reg [15:0] JOYDB15_1,JOYDB15_2;
-joy_db15 joy_db15
-(
-  .clk       ( CLK_JOY   ), //48MHz
-  .JOY_CLK   ( JOY_CLK   ),
-  .JOY_DATA  ( JOY_DATA  ),
-  .JOY_LOAD  ( JOY_LOAD  ),
-  .joystick1 ( JOYDB15_1 ),
-  .joystick2 ( JOYDB15_2 )	  
-);
 
 
 hps_io #(.CONF_STR(CONF_STR)) hps_io
@@ -338,9 +314,11 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.ioctl_din(ioctl_din),
 	.ioctl_index(ioctl_index),
 
+	.joy_raw(joydb_1[5:0] | joydb_2[5:0]),
+	
 	.joystick_0(joystick_0_USB),
 	.joystick_1(joystick_1_USB),
-	.joy_raw(joydb_1[5:0]),
+
 	.ps2_mouse(ps2_mouse)
 );
 
