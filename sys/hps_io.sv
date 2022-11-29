@@ -31,7 +31,7 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 (
 	input             clk_sys,
 	inout      [48:0] HPS_BUS,
-
+	input      [15:0] joy_raw,
 	// buttons up to 32
 	output reg [31:0] joystick_0,
 	output reg [31:0] joystick_1,
@@ -54,8 +54,6 @@ module hps_io #(parameter CONF_STR, CONF_STR_BRAM=1, PS2DIV=0, WIDE=0, VDNUM=1, 
 	output reg [15:0] joystick_r_analog_3,
 	output reg [15:0] joystick_r_analog_4,
 	output reg [15:0] joystick_r_analog_5,
-
-	input      [15:0] joy_raw,
 
 	input      [15:0] joystick_0_rumble, // 15:8 - 'large' rumble motor magnitude, 7:0 'small' rumble motor magnitude
 	input      [15:0] joystick_1_rumble,
@@ -352,6 +350,8 @@ always@(posedge clk_sys) begin : uio_block
 		end else begin
 
 			casex(cmd)
+				// Reading user_io raw joy
+				'h0f: io_dout <= joy_raw;
 				// buttons and switches
 				'h01: cfg <= io_din;
 				'h02: if(byte_cnt==1) joystick_0[15:0] <= io_din; else joystick_0[31:16] <= io_din;
@@ -545,10 +545,6 @@ always@(posedge clk_sys) begin : uio_block
 								3: {uart_speed, uart_mode} <= {io_din, tmp1, tmp2};
 							endcase
 						end
-						// Reading user_io raw joy
-						'h0f: io_dout <= joy_raw;
-// buttons and switches
-'h01: cfg <= io_din;  
 			endcase
 		end
 	end

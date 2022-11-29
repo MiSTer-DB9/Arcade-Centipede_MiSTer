@@ -139,9 +139,9 @@ wire SD_MISO = mcp_sdcd ? sd_miso : SD_SPI_MISO;
 	assign SDIO_DAT[3]  = SW[3] ? 1'bZ  : SD_CS;
 	assign SDIO_CLK     = SW[3] ? 1'bZ  : SD_CLK;
 	assign SDIO_CMD     = SW[3] ? 1'bZ  : SD_MOSI;
-	assign SD_SPI_CS    = mcp_sdcd ? ((~VGA_EN & sog & ~cs1) ? 1'b1 : 1'bZ) : SD_CS;
+	//assign SD_SPI_CS    = mcp_sdcd ? ((~VGA_EN & sog & ~cs1) ? 1'b1 : 1'bZ) : SD_CS;
 `else
-	assign SD_SPI_CS    = mcp_sdcd ? 1'bZ : SD_CS;
+	//assign SD_SPI_CS    = mcp_sdcd ? 1'bZ : SD_CS;
 `endif
 
 assign SD_SPI_CLK  = mcp_sdcd ? 1'bZ : SD_CLK;
@@ -202,8 +202,7 @@ always @(posedge FPGA_CLK2_50) begin
 		if(&deb_user) btn_user <= 1;
 		if(!deb_user) btn_user <= 0;
 
-		//deb_osd <= {deb_osd[6:0], btn_o | ~KEY[0]};
-		deb_osd <= {deb_osd[6:0], user_osd |btn_o | ~KEY[0]};
+		deb_osd <= {deb_osd[6:0], btn_o | user_osd | ~KEY[0]};
 		if(&deb_osd) btn_osd <= 1;
 		if(!deb_osd) btn_osd <= 0;
 	end

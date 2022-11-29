@@ -1,5 +1,5 @@
 set_global_assignment -name QIP_FILE rtl/pokey/pokey.qip
-set_global_assignment -name QIP_FILE rtl/T65/t65.qip
+set_global_assignment -name QIP_FILE rtl/t65/t65.qip
 set_global_assignment -name VERILOG_FILE rtl/pf_ram_dp.v
 set_global_assignment -name VERILOG_FILE rtl/color_ram.v
 set_global_assignment -name VERILOG_FILE rtl/centipede.v
@@ -9,5 +9,3 @@ set_global_assignment -name VERILOG_FILE rtl/pause.v
 set_global_assignment -name VERILOG_FILE rtl/nvram.v
 set_global_assignment -name VERILOG_FILE rtl/trackball.v
 set_global_assignment -name SYSTEMVERILOG_FILE "Arcade-Centipede.sv"
-set_global_assignment -name VERILOG_FILE rtl/joydb9md.v
-set_global_assignment -name VERILOG_FILE rtl/joydb15.v
