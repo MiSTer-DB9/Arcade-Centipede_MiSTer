@@ -224,8 +224,8 @@ joydb joydb (
 assign USER_OUT = USER_OUT_DRIVE;
 // [MiSTer-DB9 END]
 // [MiSTer-DB9-Pro BEGIN] - DB controllers muted while OSD is open; Start 2P via combo, Pause off DB15 button 6
-wire [15:0]   joystick_0 = joydb_1ena ? (OSD_STATUS ? 16'b0 : {joydb_1[6],joydb_1[9],joydb_1[11]|(joydb_1[10]&joydb_1[5]),joydb_1[10],joydb_1[4],joydb_1[3:0]}) : joystick_0_USB;
-wire [15:0]   joystick_1 = joydb_2ena ? (OSD_STATUS ? 16'b0 : {joydb_2[6],joydb_2[9],joydb_2[11]|(joydb_2[10]&joydb_2[5]),joydb_2[10],joydb_2[4],joydb_2[3:0]}) : joydb_1ena ? joystick_0_USB : joystick_1_USB;
+wire [15:0]   joystick_0 = joydb_1ena ? (OSD_STATUS ? 16'b0 : {joydb_1[6],joydb_1[9],joydb_1[11],joydb_1[10],joydb_1[4],joydb_1[3:0]}) : joystick_0_USB;
+wire [15:0]   joystick_1 = joydb_2ena ? (OSD_STATUS ? 16'b0 : {joydb_2[6],joydb_2[9],joydb_2[11],joydb_2[10],joydb_2[4],joydb_2[3:0]}) : joydb_1ena ? joystick_0_USB : joystick_1_USB;
 // [MiSTer-DB9-Pro END]
 
 ///////// Default values for ports not used in this core /////////
